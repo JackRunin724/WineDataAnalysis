@@ -74,7 +74,7 @@ class DataAugmentation:
         print("该方法基本行不通")
         return None, None
 
-    def apply_bootstrapping(self, n_samples=100, noise_scale=0.1, random_state=42):
+    def apply_bootstrapping(self, n_samples=20, noise_scale=0.1, random_state=42):
         """Bootstrapping数据增强"""
         print("应用 Bootstrap重采样 + 高斯噪声 进行数据增强...")
 
@@ -129,7 +129,7 @@ class DataAugmentation:
         """GANs (CTGAN) 数据增强"""
         print("应用全维度CTGAN数据增强...")
 
-        x, y = self.x, self.y
+        x, y = self.x_combined, self.y_combined
         
         # 合并特征和目标
         data = pd.concat([x, y], axis=1)
