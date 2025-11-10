@@ -1,3 +1,4 @@
+from datetime import datetime
 import os
 import numpy as np
 import pandas as pd
@@ -21,8 +22,8 @@ class DataAugmentation:
         self.y = y
         self.x_aug = None
         self.y_aug = None
-        self.x_combined = None
-        self.y_combined = None
+        self.x_combined = self.x
+        self.y_combined = self.y
 
     def show_data(self):
         """显示一下当前的数据"""
@@ -52,7 +53,13 @@ class DataAugmentation:
             print(f"形状: {self.y_aug.shape}")
             print(self.y_aug.head())
         
-        if self.x_combined is not None:
+        if self.x_aug is not None:
+            print("\n" + "="*50)
+            print("合并后的特征数据 (x_aug):")
+            print("="*50)
+            print(f"形状: {self.x_aug.shape}")
+            print("前5行原始数据 + 后5行增强数据:")
+            print(pd.concat([self.x_aug.head(), self.x_aug.tail()]))
             print("\n" + "="*50)
             print("合并后的特征数据 (x_combined):")
             print("="*50)
@@ -60,7 +67,13 @@ class DataAugmentation:
             print("前5行原始数据 + 后5行增强数据:")
             print(pd.concat([self.x_combined.head(), self.x_combined.tail()]))
             
-        if self.y_combined is not None:
+        if self.y_aug is not None:
+            print("\n" + "="*50)
+            print("合并后的目标变量 (y_aug):")
+            print("="*50)
+            print(f"形状: {self.y_aug.shape}")
+            print("前5行原始数据 + 后5行增强数据:")
+            print(pd.concat([self.y_aug.head(), self.y_aug.tail()]))
             print("\n" + "="*50)
             print("合并后的目标变量 (y_combined):")
             print("="*50)
@@ -78,7 +91,7 @@ class DataAugmentation:
         """Bootstrapping数据增强"""
         print("应用 Bootstrap重采样 + 高斯噪声 进行数据增强...")
 
-        x, y = self.x, self.y
+        x, y = self.x_combined, self.y_combined
         
         # 记录原始列名
         x_cols = x.columns.tolist()
@@ -124,12 +137,14 @@ class DataAugmentation:
         self.y_combined = pd.concat([y, y_aug], ignore_index=True)
         
         return x_aug, y_aug
-
+    
     def apply_gans(self, n_samples=100, epochs=100, batch_size=100):
         """GANs (CTGAN) 数据增强"""
         print("应用全维度CTGAN数据增强...")
 
         x, y = self.x_combined, self.y_combined
+
+        # return x, y
         
         # 合并特征和目标
         data = pd.concat([x, y], axis=1)
@@ -314,228 +329,31 @@ class DataAugmentation:
         
         return y_umap, y_tsne, y_pca
 
-    # def save_to_csv(self, save_dir=".", prefix=None, include_timestamp=True):
-    #     """
-    #     保存增强数据和合并数据到CSV文件
+    def save_to_csv(self, save_dir="."):
+        """保存增强数据和合并数据到CSV文件"""
+        if self.x_aug is None or self.y_aug is None:
+            print("警告：尚未进行数据增强，无法保存数据！")
+            return False
         
-    #     参数:
-    #         save_dir: 保存目录，默认为当前目录
-    #         prefix: 文件名前缀
-    #         include_timestamp: 是否在文件名中包含时间戳
-    #     """
-    #     if self.x_aug is None or self.y_aug is None:
-    #         print("警告：尚未进行数据增强，无法保存数据！")
-    #         return False
-        
-    #     try:
-    #         # 创建保存目录（如果不存在）
-    #         os.makedirs(save_dir, exist_ok=True)
+        try:
+            # 创建保存目录（如果不存在）
+            os.makedirs(save_dir, exist_ok=True)
             
-    #         # 生成文件名前缀
-    #         if prefix is None:
-    #             prefix = "augmented_data"
-            
-    #         # 生成时间戳（可选）
-    #         timestamp = ""
-    #         if include_timestamp:
-    #             if self.augmentation_time is None:
-    #                 self.augmentation_time = datetime.now()
-    #             timestamp = f"_{self.augmentation_time.strftime('%Y%m%d_%H%M%S')}"
-            
-    #         # 生成文件名
-    #         files_info = {
-    #             'original_x': f"{prefix}_original_x{timestamp}.csv",
-    #             'original_y': f"{prefix}_original_y{timestamp}.csv",
-    #             'augmented_x': f"{prefix}_augmented_x{timestamp}.csv", 
-    #             'augmented_y': f"{prefix}_augmented_y{timestamp}.csv",
-    #             'combined_x': f"{prefix}_combined_x{timestamp}.csv",
-    #             'combined_y': f"{prefix}_combined_y{timestamp}.csv",
-    #             'metadata': f"{prefix}_metadata{timestamp}.txt"
-    #         }
-            
-    #         # 保存原始数据
-    #         self.x.to_csv(os.path.join(save_dir, files_info['original_x']), index=False)
-    #         self.y.to_csv(os.path.join(save_dir, files_info['original_y']), index=False)
-    #         print(f"✓ 原始特征数据保存至: {files_info['original_x']}")
-    #         print(f"✓ 原始目标数据保存至: {files_info['original_y']}")
-            
-    #         # 保存增强数据
-    #         self.x_aug.to_csv(os.path.join(save_dir, files_info['augmented_x']), index=False)
-    #         self.y_aug.to_csv(os.path.join(save_dir, files_info['augmented_y']), index=False)
-    #         print(f"✓ 增强特征数据保存至: {files_info['augmented_x']}")
-    #         print(f"✓ 增强目标数据保存至: {files_info['augmented_y']}")
-            
-    #         # 保存合并数据
-    #         self.x_combined.to_csv(os.path.join(save_dir, files_info['combined_x']), index=False)
-    #         self.y_combined.to_csv(os.path.join(save_dir, files_info['combined_y']), index=False)
-    #         print(f"✓ 合并特征数据保存至: {files_info['combined_x']}")
-    #         print(f"✓ 合并目标数据保存至: {files_info['combined_y']}")
-            
-    #         # 保存元数据信息
-    #         self._save_metadata(os.path.join(save_dir, files_info['metadata']))
-    #         print(f"✓ 元数据信息保存至: {files_info['metadata']}")
-            
-    #         # 保存文件列表信息
-    #         self._save_file_list(save_dir, files_info, prefix)
-            
-    #         print(f"\n🎉 所有数据已成功保存到目录: {os.path.abspath(save_dir)}")
-    #         return True
-            
-    #     except Exception as e:
-    #         print(f"❌ 保存数据时出错: {e}")
-    #         return False
+            # 生成文件名
+            filename = f"augmented_data_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv"
 
-    # def save_visualization(self, save_dir=".", prefix=None, dpi=300):
-    #     """
-    #     保存可视化图表到文件
-        
-    #     参数:
-    #         save_dir: 保存目录
-    #         prefix: 文件名前缀
-    #         dpi: 图片分辨率
-    #     """
-    #     if self.y_aug is None:
-    #         print("警告：尚未进行数据增强，无法保存可视化！")
-    #         return False
-        
-    #     try:
-    #         os.makedirs(save_dir, exist_ok=True)
-            
-    #         if prefix is None:
-    #             prefix = "visualization"
-            
-    #         timestamp = ""
-    #         if self.augmentation_time:
-    #             timestamp = f"_{self.augmentation_time.strftime('%Y%m%d_%H%M%S')}"
-            
-    #         # 生成质量评估图表
-    #         plt.figure(figsize=(12, 4))
-            
-    #         y_original = self.y.values if hasattr(self.y, 'values') else self.y
-    #         y_synthetic = self.y_aug.values if hasattr(self.y_aug, 'values') else self.y_aug
-            
-    #         # 均值一致性
-    #         mean_original = np.mean(y_original, axis=0)
-    #         mean_synthetic = np.mean(y_synthetic, axis=0)
-            
-    #         plt.subplot(1, 3, 1)
-    #         plt.scatter(mean_original, mean_synthetic, alpha=0.6)
-    #         plt.plot([mean_original.min(), mean_original.max()], 
-    #                 [mean_original.min(), mean_original.max()], 'r--')
-    #         plt.xlabel('原始数据均值')
-    #         plt.ylabel('生成数据均值')
-    #         plt.title('均值一致性')
-            
-    #         # 方差一致性
-    #         std_original = np.std(y_original, axis=0)
-    #         std_synthetic = np.std(y_synthetic, axis=0)
-            
-    #         plt.subplot(1, 3, 2)
-    #         plt.scatter(std_original, std_synthetic, alpha=0.6)
-    #         plt.plot([std_original.min(), std_original.max()], 
-    #                 [std_original.min(), std_original.max()], 'r--')
-    #         plt.xlabel('原始数据标准差')
-    #         plt.ylabel('生成数据标准差')
-    #         plt.title('方差一致性')
-            
-    #         # 分布距离
-    #         n_vars = min(10, y_original.shape[1])
-    #         wasserstein_distances = []
-    #         for i in range(n_vars):
-    #             w_dist = wasserstein_distance(y_original[:, i], y_synthetic[:, i])
-    #             wasserstein_distances.append(w_dist)
-            
-    #         plt.subplot(1, 3, 3)
-    #         plt.bar(range(n_vars), wasserstein_distances)
-    #         plt.xlabel('目标变量索引')
-    #         plt.ylabel('Wasserstein距离')
-    #         plt.title('分布距离评估')
-            
-    #         plt.tight_layout()
-    #         plt.savefig(os.path.join(save_dir, f"{prefix}_quality_assessment{timestamp}.png"), 
-    #                    dpi=dpi, bbox_inches='tight')
-    #         plt.close()
-            
-    #         print(f"✓ 质量评估图表保存至: {prefix}_quality_assessment{timestamp}.png")
-            
-    #         # 保存综合可视化（如果已生成）
-    #         try:
-    #             # 这里可以调用comprehensive_visualization并保存结果
-    #             pass
-    #         except:
-    #             pass
-                
-    #         return True
-            
-    #     except Exception as e:
-    #         print(f"❌ 保存可视化时出错: {e}")
-    #         return False
+            # 合并数据
+            combined_data = self.x_combined.copy()
+            combined_data[self.y_combined.columns] = self.y_combined
 
-    # def quick_save(self, description=""):
-    #     """
-    #     快速保存方法（使用默认设置）
-        
-    #     参数:
-    #         description: 数据描述，用于文件名
-    #     """
-    #     if description:
-    #         prefix = f"augmented_{description}"
-    #     else:
-    #         prefix = "augmented_data"
-        
-    #     # 设置增强时间
-    #     self.augmentation_time = datetime.now()
-        
-    #     # 保存数据
-    #     success1 = self.save_to_csv(prefix=prefix)
-        
-    #     # 保存可视化
-    #     success2 = self.save_visualization(prefix=prefix)
-        
-    #     return success1 and success2
-
-
-# def main():
-#     """主函数示例"""
-#     print("=== 数据增强系统演示 ===")
-    
-#     # 示例：创建模拟数据（实际使用时替换为您的数据）
-#     np.random.seed(42)
-
-#     n_samples = 20
-#     n_features = 2
-#     n_targets = 58
-    
-#     # 创建示例数据
-#     x = pd.DataFrame(np.random.randn(n_samples, n_features), columns=['feature1', 'feature2'])
-#     y = pd.DataFrame(np.random.randn(n_samples, n_targets), columns=[f'target_{i}' for i in range(n_targets)])
-    
-#     print(f"原始数据形状: x={x.shape}, y={y.shape}")
-    
-#     # 初始化数据增强类
-#     da = DataAugmentation(x, y)
-    
-#     # 显示原始数据
-#     print("\n1. 原始数据概览:")
-#     da.show_data()
-    
-#     # 方法1: 使用GANs进行数据增强
-#     print("\n2. 使用GANs进行数据增强:")
-#     x_aug, y_aug = da.apply_gans(n_samples=50, epochs=50, batch_size=20)
-    
-#     # 显示增强后的数据
-#     print("\n3. 增强后数据概览:")
-#     da.show_data()
-    
-#     # 质量评估
-#     print("\n4. 数据质量评估:")
-#     quality_results = da.direct_quality_assessment()
-    
-#     # 可视化分析
-#     print("\n5. 综合可视化分析:")
-#     da.comprehensive_visualization()
-    
-#     print("\n=== 演示完成 ===")
+            # 保存数据信息
+            combined_data.to_csv(os.path.join(save_dir, filename), index=False)
+            print(f"✓ 增强后的数据保存至: {filename}")
+            print(f"✓ 数据形状: {combined_data.shape}")
+            
+        except Exception as e:
+            print(f"❌ 保存数据时出错: {e}")
+            return False
 
 def main():
     """简化版主函数用于测试"""
